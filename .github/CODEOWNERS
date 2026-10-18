@@ -1,0 +1,27 @@
+# The owner of a folder is asked to review any PR that touches it.
+
+# Default: everything needs a review from any two owners via the ruleset
+*                       @Sarthak2845 @kedariprasad25-arch @PratikShinde117 @vaibhavbaviskar21
+
+# A: Intake lead
+/intake/                @Sarthak2845
+/nginx/                 @Sarthak2845
+/loadtest/              @Sarthak2845
+/simulators/            @Sarthak2845
+
+# B: Processing lead
+/processor/             @kedariprasad25-arch
+/db/                    @kedariprasad25-arch
+/chaos/                 @kedariprasad25-arch
+
+# C: Product lead
+/api/                   @PratikShinde117
+/dashboard/             @PratikShinde117
+
+# D: Intelligence lead
+/api/intelligence/      @vaibhavbaviskar21
+/docs/                  @vaibhavbaviskar21
+
+# Infra and repo rules: the whole team must agree
+/docker-compose.yml     @Sarthak2845 @kedariprasad25-arch
+/.github/               @Sarthak2845 @kedariprasad25-arch @PratikShinde117 @vaibhavbaviskar21
