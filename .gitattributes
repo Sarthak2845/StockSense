@@ -1,0 +1,6 @@
+# Files run inside Linux containers must keep LF line endings,
+# even when checked out on Windows (CRLF breaks bash shebangs).
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.yml  text eol=lf
+*.conf text eol=lf
