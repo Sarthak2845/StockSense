@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stocksense.local/contracts/internal-event.schema.json",
+  "title": "StockSense internal event",
+  "description": "The message intake publishes to the RabbitMQ `events` queue after normalising a channel webhook or POS sale. See docs/event-contract.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["external_event_id", "channel", "type", "sku", "quantity", "occurred_at"],
+  "properties": {
+    "external_event_id": {
+      "description": "The channel's own unique ID for this event. Together with `channel` it is the duplicate key.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "channel": {
+      "type": "string",
+      "enum": ["amazon", "flipkart", "website", "counter"]
+    },
+    "type": {
+      "type": "string",
+      "enum": ["sale", "cancel", "return"]
+    },
+    "sku": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9-]{0,63}$"
+    },
+    "quantity": {
+      "description": "Signed change to on-hand stock: sale is negative, cancel and return are positive.",
+      "type": "integer",
+      "not": { "const": 0 }
+    },
+    "unit_price": {
+      "description": "Selling price per unit in Rs. Required for sales.",
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "order_id": {
+      "type": ["string", "null"],
+      "maxLength": 128
+    },
+    "customer_ref": {
+      "description": "The channel's customer ID, matched to customers(channel, external_id).",
+      "type": ["string", "null"],
+      "maxLength": 128
+    },
+    "occurred_at": {
+      "description": "When the event happened at the channel, ISO 8601 with timezone.",
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "sale" } } },
+      "then": {
+        "properties": {
+          "quantity": { "type": "integer", "maximum": -1 },
+          "unit_price": { "type": "number" }
+        },
+        "required": ["unit_price", "order_id"]
+      }
+    },
+    {
+      "if": { "properties": { "type": { "enum": ["cancel", "return"] } } },
+      "then": {
+        "properties": { "quantity": { "type": "integer", "minimum": 1 } },
+        "required": ["order_id"]
+      }
+    }
+  ]
+}

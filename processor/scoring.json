@@ -1,0 +1,9 @@
+{
+  "_comment": "Conflict scoring weights (PRD 9.3). score = w_margin*margin + w_customer_value*customerValue + w_cancel_penalty*cancelPenalty - w_lateness*lateness_ms",
+  "w_margin": 1.0,
+  "w_customer_value": 0.5,
+  "w_cancel_penalty": 1.0,
+  "w_lateness": 0.01,
+  "customer_value_cap": 5000,
+  "conflict_window_sec": 2
+}
