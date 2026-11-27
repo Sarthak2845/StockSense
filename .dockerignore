@@ -1,0 +1,11 @@
+# Build context is the repo root (so services can copy docs/contracts).
+# Keep secrets, dependencies and caches out of every image.
+.env
+.git
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/coverage
+*.md
+!docs/**/*.md

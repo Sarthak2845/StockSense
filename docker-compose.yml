@@ -1,6 +1,7 @@
-# StockSense — Phase 0 stack: Postgres (+pgvector), Redis, RabbitMQ.
-# Services (intake, nginx, processor, api, simulators) are added in later phases.
+# StockSense — Phase 1 stack: infrastructure (Postgres + pgvector, Redis, RabbitMQ)
+# plus intake, processor and api. Nginx and channel simulators come in Phase 3.
 # Host ports bind to 127.0.0.1 so the dev stack is not exposed on the LAN.
+# Passwords are embedded in connection URLs below: keep them URL-safe (no @ : / # ?).
 
 services:
   postgres:
@@ -47,10 +48,65 @@ services:
       - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
       - "127.0.0.1:15672:15672"        # management UI for the demo
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
+      # Not `rabbitmq-diagnostics ping`: healthchecks run as root with HOME=/var/lib/rabbitmq,
+      # so on a fresh volume the CLI can create a root-owned .erlang.cookie before the broker
+      # does, and the broker (user rabbitmq) then crashes with eacces. The AMQP port only opens
+      # once the broker is up, so a TCP check is enough and touches no files.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/5672"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  # Webhook intake: HMAC check, normalise, Redis duplicate check, publish with confirms.
+  intake:
+    build:
+      context: .
+      dockerfile: intake/Dockerfile
+    environment:
+      REDIS_URL: redis://:${REDIS_PASS}@redis:6379
+      AMQP_URL: amqp://${RABBITMQ_USER:-stocksense}:${RABBITMQ_PASS}@rabbitmq:5672
+      WEBHOOK_SECRET_AMAZON: ${WEBHOOK_SECRET_AMAZON:?set WEBHOOK_SECRET_AMAZON in .env}
+      WEBHOOK_SECRET_FLIPKART: ${WEBHOOK_SECRET_FLIPKART:?set WEBHOOK_SECRET_FLIPKART in .env}
+      WEBHOOK_SECRET_WEBSITE: ${WEBHOOK_SECRET_WEBSITE:?set WEBHOOK_SECRET_WEBSITE in .env}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+    ports:
+      - "127.0.0.1:${INTAKE_PORT:-8080}:3000"
+    depends_on:
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  # Event processor: applies each event exactly once, acks after commit.
+  processor:
+    build:
+      context: .
+      dockerfile: processor/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${PG_USER:-stocksense}:${PG_PASS}@postgres:5432/${PG_DB:-stocksense}
+      AMQP_URL: amqp://${RABBITMQ_USER:-stocksense}:${RABBITMQ_PASS}@rabbitmq:5672
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  # Dashboard API (read-only in Phase 1). Docs at http://localhost:8000/docs
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${PG_USER:-stocksense}:${PG_PASS}@postgres:5432/${PG_DB:-stocksense}
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 3s
       retries: 20
+    restart: unless-stopped
 
 volumes:
   pgdata:

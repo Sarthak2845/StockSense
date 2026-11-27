@@ -124,6 +124,7 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
         stream=sys.stdout,
     )
+    logging.getLogger("pika").setLevel(logging.WARNING)  # connection chatter
     database_url = os.environ.get("DATABASE_URL")
     amqp_url = os.environ.get("AMQP_URL")
     if not database_url or not amqp_url:
