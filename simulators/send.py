@@ -186,7 +186,7 @@ def _sku_of(body: dict) -> str:
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--url", default="http://localhost:8080", help="intake base URL")
+    p.add_argument("--url", default="http://127.0.0.1:8080", help="intake base URL (127.0.0.1, not localhost: on Windows localhost tries IPv6 first and adds ~2 s)")
     p.add_argument("--count", type=int, default=100, help="unique sales to send")
     p.add_argument("--rate", type=float, default=50, help="requests per second (0 = as fast as possible)")
     p.add_argument("--duplicates", type=float, default=0.0, help="probability of resending each webhook")
